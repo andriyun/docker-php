@@ -1,0 +1,41 @@
+image: skilldlabs/php:7
+
+variables:
+  GIT_DEPTH: "3"
+
+build:
+  stage: build
+  script:
+  - time drush make src/drush_make/profile.make.yml --prepare-install --overwrite -y build
+  - cp -R src/mazars build/profiles
+  - cd build
+  - time composer require league/csv:^8.0
+  - cd ..
+  artifacts:
+    expire_in: 7d
+    paths:
+    - build/
+
+test:install:
+  stage: test
+  script:
+  - apk add --no-cache sqlite
+  - echo "sendmail_path = /usr/sbin/sendmail -t -i -S diyan__mailhog:1025" >> /etc/php7/conf.d/xx-drupal.ini
+  - cd build
+  - curl https://www.drupal.org/files/issues/call_to_a_member-2608408-28.patch > p.patch
+  - patch -p1 < p.patch
+  - curl https://www.drupal.org/files/issues/2348137-3.patch > sqlite.patch
+  - patch -p1 < sqlite.patch
+  - time drush si --db-url=sqlite:///dev/shm/.ht-$CI_PIPELINE_ID.sqlite --account-pass=admin -y --site-name=Mazars.build
+  - drush st
+  - drush ups
+  - cp /dev/shm/.ht-$CI_PIPELINE_ID.sqlite ..
+  services:
+  - diyan/mailhog
+  dependencies:
+  - build
+  artifacts:
+    expire_in: 7d
+    paths:
+    - build/
+    - .ht-$CI_PIPELINE_ID.sqlite
