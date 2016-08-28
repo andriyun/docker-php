@@ -6,9 +6,9 @@ variables:
 build:
   stage: build
   script:
-  - time drush make src/drush_make/profile.make.yml --prepare-install --overwrite -y build
-  - cp -R src/mazars build/profiles
-  - cd build
+  - mkdir -p drupal
+  - time drush make src/drush_make/profile.make.yml --prepare-install  --overwrite -y drupal
+  - cd drupal
   - time composer require league/csv:^8.0
   - cd ..
   artifacts:
@@ -21,7 +21,7 @@ test:install:
   script:
   - apk add --no-cache sqlite
   - echo "sendmail_path = /usr/sbin/sendmail -t -i -S diyan__mailhog:1025" >> /etc/php7/conf.d/xx-drupal.ini
-  - cd build
+  - cd drupal
   - curl https://www.drupal.org/files/issues/call_to_a_member-2608408-28.patch > p.patch
   - patch -p1 < p.patch
   - curl https://www.drupal.org/files/issues/2348137-3.patch > sqlite.patch
